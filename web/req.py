@@ -2,11 +2,12 @@ import requests, bs4
 import re
 import uuid
 url = 'https://www.amazon.co.jp/s/ref=nb_sb_noss_1?url=search-alias%3Dinstant-video&field-keywords='
-keyword = "ゆるゆり"
-
+keyword = "よりもい"
 res = requests.get(url + keyword)
-
-soup = bs4.BeautifulSoup(res.text, "html.parser")
+try:
+    soup = bs4.BeautifulSoup(res.text, "lxml")
+except:
+    soup = bs4.BeautifulSoup(res.text, "html5lib")
 elems = soup.select('.a-size-medium.s-inline.s-access-title.a-text-normal')
 for elem in elems:
     print('{}'.format(elem.getText()))
