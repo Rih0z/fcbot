@@ -11,6 +11,18 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import chromedriver_binary
+
+# ブラウザーを起動
+options = Options()
+options.binary_location = '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary'
+options.add_argument('--headless')
+driver = webdriver.Chrome(chrome_options=options)
+
+# 今は chrome_options= ではなく options=
+
 def getTitleByHint(hsoup):
     hcnt = hsoup.select_one("#rhs_block a")
     if(hcnt is not None):
@@ -109,11 +121,30 @@ def searchAmazonP(atitle):
         if(atx.find("￥ 0エピソード レンタル") != -1):
             ames = "\n" + ames + "2話以降は有料かも"
     return ames 
+def searchJW(jmes,jtitle):
+    jprovn = jmes
+    jprov = ""
+    if(jmes == "Netfix"):
+        jprov = "nfx" 
+    jmes = jmes + "では" + jtitle + "は"
+    jurl = "https://www.justwatch.com/jp/検索?q="+jtitle+"&providers="+ jprov   
+    #print(jurl)
+    jres = requests.get(jurl)
+    jres.raise_for_status()
+    try:
+        jsoup = bs4.BeautifulSoup(jres.content, "html.parser")
+    except:
+        jsoup = bs4.BeautifulSoup(jres.content, "html5lib")
 
-
+    jcnts = jsoup.select("body > div.container-fluid.gradient-bg.wrapper > filter-bar > ng-transclude > core-list > div > div > div:nth-child(1) > search-result-entry > div > div:nth-child(2) > div:nth-child(1) > a > span:nth-child(1)")
+   # jcnts = jsoup.find_all("span")
+    for jcnt in jcnts:
+        print(jcnt)
+    jmes = jprovn + "で"+jtitle
+    return jmes
 def main():
     mes = ""
-    key = "yurukyan"
+    key = "ゆるゆり"
     print(key+"が入力されたよ")
     title = getTitleByKey(key)
     if(title == ""):
@@ -121,8 +152,9 @@ def main():
     print(title)
     mes = searchDanime(title)
     mes = mes + "\n"
-    mes = mes + searchAmazonP("yurukyan")
+    mes = mes + searchAmazonP(key)
     print(mes)
+    searchJW("Netfix",title)
     return
 
 # main関数呼び出し

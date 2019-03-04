@@ -19,12 +19,16 @@ import urllib
 import urllib.request
 from urllib.parse import urlparse, parse_qs
 from furl import furl
-#import importlib
-#importlib.reload(sys)
-#sys.setdefaultencoding('utf-8')
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+options = Options()
+options.binary_location = '/app/.apt/usr/bin/google-chrome'
+options.add_argument('--headless')
+options.add_argument('--disable-gpu')
+driver = webdriver.Chrome(chrome_options=options)
 
 app = Flask(__name__)
-
 
 #環境変数取得
 YOUR_CHANNEL_ACCESS_TOKEN = os.environ["YOUR_CHANNEL_ACCESS_TOKEN"]
