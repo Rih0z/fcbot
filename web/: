@@ -11,6 +11,7 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 
+print(furl.__version__)
 def getTitleByHint(hsoup):
     hcnt = hsoup.select_one("#rhs_block a")
     if(hcnt is not None):
@@ -42,21 +43,15 @@ def getTitleByKey(tkeyword):
         ttitle = getTitleByHint(tsoup)
 
     return ttitle
-def changeTitle2Urld(ctitle):
+def changeTitle2Url(ctitle):
     if(ctitle.find("&") != -1):
         ctitle = ctitle.replace('&','%26')
     ctitle = str(furl(ctitle))
     return ctitle
 
-def changeTitle2Urla(ctitle):
-    if(ctitle.find("&") != -1):
-        ctitle = ctitle.replace('&','＆')
-    ctitle = str(furl(ctitle))
-    return ctitle
-
 def searchDanime(dtitle):
     durl = "https://anime.dmkt-sp.jp/animestore/sch?searchKey="
-    dres = requests.get((durl + changeTitle2Urld(dtitle)))
+    dres = requests.get((durl + changeTitle2Url(dtitle)))
     dres.raise_for_status()
     dnum = 0
     try:
@@ -73,55 +68,14 @@ def searchDanime(dtitle):
         dmes = dmes + "は見られるよ.\n関連する動画が"+ dcnt +"見つかったよ"
     return dmes
 
-
-
-def searchAmazonP(atitle):
-    ames = "AmazonPrimeでは見つけられなかったよ"
-    aurl = 'https://www.amazon.co.jp/s/ref=nb_sb_noss_1?url=search-alias%3Dinstant-video&field-keywords='
-    atx = ""
-    
-    ares = requests.get(aurl + changeTitle2Urla(atitle) )
-    try:
-        asoup = bs4.BeautifulSoup(ares.text, "html.parser")
-    except:
-        asoup = bs4.BeautifulSoup(ares.text, "html5lib")
-
-    acnt =  asoup.select_one("#result_0 > div > div > div > div.a-fixed-left-grid-col.a-col-right > div.a-row.a-spacing-small > div > a > h2")
-    if(type(acnt) is bs4.element.Tag):
-        atitle = acnt.getText()
-    else:
-        return ames
-    atx =  asoup.select_one("#result_0 > div > div > div > div.a-fixed-left-grid-col.a-col-right > div:nth-child(2) > div.a-column.a-span7").getText()
-    print(atx+"sss")
-    #if(atxs is not None ):
-     #   atx = atxs.getText()
-    #else:
-     #   return ames
-    ames = "AmazonPrimeには" + atitle + "があったよ．\n"+ atitle + "は"
-    if (atx.find("プライム会員特典") != -1):
-        ames= ames +"Prime会員特典だよ"
-        return ames
-    else:
-        ames = ames  + atx + "だよ"
-        if(atx == ""):
-            ames = "AmazonPrimeで" +  atitle + "は見られないよ"
-            return ames
-        if(atx.find("￥ 0エピソード レンタル") != -1):
-            ames = "\n" + ames + "2話以降は有料かも"
-    return ames 
-
-
 def main():
-    mes = ""
-    key = "yurukyan"
+    key = "ゆるゆり"
     print(key+"が入力されたよ")
     title = getTitleByKey(key)
     if(title == ""):
         title = key
     print(title)
     mes = searchDanime(title)
-    mes = mes + "\n"
-    mes = mes + searchAmazonP("yurukyan")
     print(mes)
     return
 

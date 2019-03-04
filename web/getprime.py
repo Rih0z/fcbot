@@ -29,13 +29,6 @@ else:
     print(cn)
     sys.exit()
 print(cn)
-#elems = soup.select('.a-size-medium.s-inline.s-access-title.a-text-normal')
-#for elem in elems:
-#    cn = format(elem.getText())
- #   print(cn)
-  #  break
-
-#h2 = soup.find_all('h2',src=re.compile())
 tx = ""
 tx =  soup.select_one("#result_0 > div > div > div > div.a-fixed-left-grid-col.a-col-right > div:nth-child(2) > div.a-column.a-span7").getText()
 
