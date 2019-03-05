@@ -26,7 +26,6 @@ options = Options()
 options.binary_location = '/app/.apt/usr/bin/google-chrome'
 options.add_argument('--headless')
 options.add_argument('--disable-gpu')
-driver = webdriver.Chrome(chrome_options=options)
 
 app = Flask(__name__)
 
@@ -37,24 +36,30 @@ YOUR_CHANNEL_SECRET = os.environ["YOUR_CHANNEL_SECRET"]
 line_bot_api = LineBotApi(YOUR_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(YOUR_CHANNEL_SECRET)
 
-@app.route("/callback", methods=['POST'])
-def callback():
-    # get X-Line-Signature header value
-    signature = request.headers['X-Line-Signature']
 
-    # get request body as text
-    body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)
+def changeTitle2Urld(ctitle):
+    ctitle = ctitle.replace('&','＆')
+    ctitle = ctitle.replace('＆','%26')
+    ctitle = ctitle.replace(' ','　')
+    ctitle = ctitle.replace('　','+')
+    print(ctitle)
+    ctitle = str(furl(ctitle))
+    return ctitle
 
-    # handle webhook body
-    try:
-        handler.handle(body, signature)
-    except InvalidSignatureError:
-        abort(400)
+def changeTitle2Urla(ctitle):
+    if(ctitle.find("&") != -1):
+        ctitle = ctitle.replace('&','＆')
+    #ctitle = str(furl(ctitle))
+    return ctitle
 
-    return 'OK'
-
-
+def getTitleinStr(gtitle):
+    tp1 = gtitle.find("』")
+    tp2 = gtitle.find("『")
+    if(tp1 is not None):
+        if(tp1 != -1):
+            gtitle = gtitle[tp2+1:tp1]  
+    return gtitle
+#奇跡も魔法もあるんだよでまどマギをだす関数
 def getTitleByHint(hsoup):
     hcnt = hsoup.select_one("#rhs_block a")
     if(hcnt is not None):
@@ -64,8 +69,8 @@ def getTitleByHint(hsoup):
     return htitle
 
 def getTitleByKey(tkeyword):
-    turl = 'http://www.google.co.jp/search?hl=jp&gl=JP&num=10&q='
-    tres = requests.get(turl + tkeyword)
+    turl = 'http://www.google.co.jp/search?hl=jp&gl=JP&num=10&q=' + changeTitle2Urld(tkeyword)
+    tres = requests.get(turl)
     tres.raise_for_status()
 
     try:
@@ -77,49 +82,53 @@ def getTitleByKey(tkeyword):
     ttitle = ""
     for tcnt in tcnts:
         tdata = tcnt.getText()
-        tp1 = tdata.find("』")
-        if(tp1 is not None):
-            if(tp1 != -1):
-                ttitle = tdata[1:tp1]  
-        break
+        ttitle = getTitleinStr(tdata)
+        if(ttitle is not None):
+            break
     if (ttitle == ""):
         ttitle = getTitleByHint(tsoup)
 
+    if(ttitle.find("リメイク作品：") != -1 or ttitle.find("著者：") != -1 or ttitle.find("出版社：") != -1 or ttitle.find("スタジオ：") != -1):
+
+        jdriver.get(turl)
+        thtml = jdriver.page_source
+        try:
+            tsoup = bs4.BeautifulSoup(thtml, "html.parser")
+        except:
+            tsoup = bs4.BeautifulSoup(thtml, "html5lib")
+
+        tcnt = tsoup.select_one("#cnt > div:nth-child(13) > div:nth-child(1) > div:nth-child(2) > div > div:nth-child(3) > div:nth-child(2) > div > div > div > div:nth-child(1) > div > div:nth-child(1) > div > div > div:nth-child(2) > div > span > em:nth-child(1)")
+        if (tcnt is not None):
+            ttitle = tcnt.getText()
+
     return ttitle
-def changeTitle2Urld(ctitle):
-    ctitle = ctitle.replace('&','＆')
-    ctitle = ctitle.replace('＆','%26')
-    ctitle = ctitle.replace(' ','　')
-    print(ctitle)
-    ctitle = str(furl(ctitle))
-    return ctitle
-
-def changeTitle2Urla(ctitle):
-    if(ctitle.find("&") != -1):
-        ctitle = ctitle.replace('&','＆')
-    #ctitle = str(furl(ctitle))
-    return ctitle
-
 def searchDanime(dtitle):
     durl = "https://anime.dmkt-sp.jp/animestore/sch?searchKey="
     durl = durl + changeTitle2Urld(dtitle)
 
-    dres = requests.get(durl)
-    dres.raise_for_status()
     dnum = 0
+    jdriver.get(durl)
+    dhtml = jdriver.page_source
     try:
-        dsoup = bs4.BeautifulSoup(dres.content, "html.parser")
+        dsoup = bs4.BeautifulSoup(dhtml, "html.parser")
     except:
-        dsoup = bs4.BeautifulSoup(dres.content, "html5lib")
+        dsoup = bs4.BeautifulSoup(dhtml, "html5lib")
 
     dcnt = dsoup.select_one("body > div > div.listHeader.clearfix > p").getText()
     dnum = int(dcnt[0])
-    dmes = "dアニメストアで"+dtitle
+    dmes = "dアニメストアで"
+    danit = ""
     #ガルパンでバグる対策 だめな処理
     if(dnum == 0 or dcnt == "42件"):
-        dmes =  dmes + "は見られないよ"
+        dmes =  dmes + "は見つけられなかったよ"
     else:
-        dmes = dmes + "に関連する動画が"+ dcnt +"見つかったよ"
+        dani = dsoup.select_one("#listContainer > div:nth-child(1) > section > div.itemModuleIn > a > div > h3 > span")   
+        if(dani is not None):
+            danit = dani.getText()
+        dmes = dmes +dtitle+ "に関連する動画が"+ dcnt +"\n" 
+        if(danit != ""):
+            dmes = dmes + danit + "が"
+        dmes = dmes + "見つかったよ"
     return dmes
 
 
@@ -146,7 +155,7 @@ def searchAmazonP(atitle):
      #   atx = atxs.getText()
     #else:
      #   return ames
-    ames = "AmazonPrimeには" + atitle + "があったよ．\n"+ atitle + "は"
+    ames = "AmazonPrimeには" + atitle + "があったよ．\n" 
     if (atx.find("プライム会員特典") != -1):
         ames= ames +"Prime会員特典だよ"
         return ames
@@ -159,22 +168,91 @@ def searchAmazonP(atitle):
             ames = "\n" + ames + "2話以降は有料かも"
     return ames 
 
+jdriver = webdriver.Chrome(chrome_options=options)
+
+def searchJW(jmes,jtitle):
+    jprovn = jmes
+    jprov = ""
+    if(jmes == "Netfix"):
+        jprov = "nfx" 
+    if(jmes == "Hulu"):
+        jprov = "hlu" 
+    if(jmes == "dTV"):
+        jprov = "dtv" 
+    if(jmes == "U-NEXT"):
+        jprov = "unx" 
+    if(jmes == "GYAO"):
+        jprov = "gyo" 
+    jmes = jmes + "では" + jtitle + "は"
+    jurl = "https://www.justwatch.com/jp/検索?q="+jtitle+"&providers="+ jprov   
+    #print(jurl)
+    jdriver.get(jurl)
+    jhtml = jdriver.page_source
+
+    try:
+        jsoup = bs4.BeautifulSoup(jhtml, "html.parser")
+    except:
+        jsoup = bs4.BeautifulSoup(jhtml, "html5lib")
+
+    jcnt = jsoup.select_one("body > div.container-fluid.gradient-bg.wrapper > filter-bar > ng-transclude > core-list > div > div > div:nth-child(1) > search-result-entry > div > div:nth-child(2) > div:nth-child(1) > a > span:nth-child(1)")
+   # jcnts = jsoup.find_all("span")
+    jmes = jprovn + "では"
+    if(jcnt is not None):
+       jcntn = jcnt.getText()
+       jmes = jmes + jcntn + "をみることができるよ"
+    else:
+       jmes = jmes + "見つけられなかったよ"
+    return jmes
+def main():
+     return
+
+
+@app.route("/callback", methods=['POST'])
+def callback():
+    # get X-Line-Signature header value
+    signature = request.headers['X-Line-Signature']
+
+    # get request body as text
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
+
+    # handle webhook body
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+
+    return 'OK'
+
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     mes = ""
     key = event.message.text
     title = getTitleByKey(key)
-    if(title == ""):
+    if(title.find("...") != -1):
+        title = getTitleinStr(title)
+    #ラーメンで調べるとオックスフォード英和辞典になるので
+
+    if(title == "" or len(title) > 50 or title.find("オックスフォード英語辞典") != -1 or title.find("とは、") != -1 or title.find("リメイク作品：") != -1 or title.find("著者：") != -1 or title.find("出版社：") != -1 or title.find("スタジオ：") != -1):
         title = key
-    mes = title + "について調べたよ\n"
-    mes = mes + searchDanime(title) +"\n\n"
-    mes = mes + searchAmazonP(key)
+    mes = title + "について調べたよ\n\n"
+    print(mes)
+    mes = mes + searchAmazonP(key)+ "\n"
+    mes = mes + searchJW("Netfix",title)+ "\n"
+    mes = mes + searchJW("Hulu",title)+ "\n"
+   # mes = mes + searchJW("U-NEXT",title)+ "\n"
+    #mes = mes + searchJW("GYAO",title)+ "\n"
+    mes = mes + searchDanime(title) +"\n"
+    mes = mes + searchJW("dTV",title)
+
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text = mes))
+        TextSendMessage(text = mes)
+    )
 
 if __name__ == "__main__":
 #    app.run()
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
