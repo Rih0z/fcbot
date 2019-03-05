@@ -1,5 +1,5 @@
 # fcbot
-任意のアニメやドラマがどのサービスで見ることができるかわかるLINEbot(slackにもしたい)。また、会員特典に追加されたら通知してくれる機能も追加予定。amazonPrimeでprime特典に追加された場合など https://line.me/R/ti/p/UxCIHtav4l
+任意のアニメやドラマがどのサービスで見ることができるかわかるLINEbot。amazonPrimeでprime特典に追加された場合など https://line.me/R/ti/p/UxCIHtav4l
 
 小泉さん　メイドラゴン　
 などの断片的な情報でも検索できる．
