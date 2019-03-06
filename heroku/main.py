@@ -24,9 +24,13 @@ from selenium.webdriver.chrome.options import Options
 
 options = Options()
 options.binary_location = '/app/.apt/usr/bin/google-chrome'
+
 options.add_argument('--headless')
 options.add_argument('--disable-gpu')
 
+jdriver = webdriver.Chrome(chrome_options=options)
+
+#jdriver = Chrome(executable_path=driver_path, chrome_options=options)
 app = Flask(__name__)
 
 #環境変数取得
@@ -42,7 +46,7 @@ def changeTitle2Urld(ctitle):
     ctitle = ctitle.replace('＆','%26')
     ctitle = ctitle.replace(' ','　')
     ctitle = ctitle.replace('　','+')
-    print(ctitle)
+   # print(ctitle)
     ctitle = str(furl(ctitle))
     return ctitle
 
@@ -101,6 +105,32 @@ def getTitleByKey(tkeyword):
         if (tcnt is not None):
             ttitle = tcnt.getText()
 
+
+    if ( ttitle.find("公開日：") != -1):
+
+        jdriver.get(turl)
+        thtml = jdriver.page_source
+        try:
+            tsoup = bs4.BeautifulSoup(thtml, "html.parser")
+        except:
+            tsoup = bs4.BeautifulSoup(thtml, "html5lib")
+
+        tcnt = tsoup.select_one("#rhs_block > div > div.kp-blk.knowledge-panel.Wnoohf.OJXvsb > div > div.ifM9O > div:nth-child(2) > div.kp-header > div > div.kp-hc > div > div > div.SPZz6b > div.kno-ecr-pt.kno-fb-ctx.gsmt.hNKfZe > span")
+        if (tcnt is not None):
+            ttitle = tcnt.getText()
+
+    if ( ttitle.find("番組：") != -1):
+
+        jdriver.get(turl)
+        thtml = jdriver.page_source
+        try:
+            tsoup = bs4.BeautifulSoup(thtml, "html.parser")
+        except:
+            tsoup = bs4.BeautifulSoup(thtml, "html5lib")
+
+        tcnt = tsoup.select_one("#rhs_block > div > div.kp-blk.knowledge-panel.Wnoohf.OJXvsb > div > div.ifM9O > div:nth-child(2) > div.SALvLe.farUxc.mJ2Mod > div > div:nth-child(2) > div > div > span.LrzXr.kno-fv > a")
+        if (tcnt is not None):
+            ttitle = tcnt.getText()
     return ttitle
 def searchDanime(dtitle):
     durl = "https://anime.dmkt-sp.jp/animestore/sch?searchKey="
@@ -168,7 +198,75 @@ def searchAmazonP(atitle):
             ames = "\n" + ames + "2話以降は有料かも"
     return ames 
 
-jdriver = webdriver.Chrome(chrome_options=options)
+
+
+def searchHulu(htitle):
+    hurl = "https://www.happyon.jp/search?q="
+    hurl = hurl + changeTitle2Urld(htitle)
+
+   # print(hurl)
+    jdriver.get(hurl)
+    dhtml = jdriver.page_source
+   # WebDriverWait(jdriver, 30).until(EC.element_to_be_clickable((By.ID, "listContainer")))
+    try:
+        hsoup = bs4.BeautifulSoup(dhtml, "html.parser")
+    except:
+        hsoup = bs4.BeautifulSoup(dhtml, "html5lib")
+
+    hcnts = hsoup.find_all("p")
+    hlut = ""
+    for hcnt in hcnts :
+    #    print(hcnt )
+        if (hcnt is not None):
+            hlut = hcnt.getText();
+     #       print(hlut)
+            if(hlut.find(htitle) != -1) :
+      #          print(htitle + hlut)
+                break
+            else:
+                hlut = ""
+    hmes = "Huluで"
+    if(hlut == ""):
+        hmes =  hmes + "は見つけられなかったよ"
+    else:
+        hmes = hmes + hlut +"が見つかったよ"
+    return hmes
+
+
+
+
+def searchdtv(dvtitle):
+    dvurl = "https://pc.video.dmkt-sp.jp/search/increment?words="
+    dvurl = dvurl + ((dvtitle))
+
+  #  print(dvurl)
+    jdriver.get(dvurl)
+    dvhtml = jdriver.page_source
+   # WebDriverWait(jdriver, 30).until(EC.element_to_be_clickable((By.ID, "listContainer")))
+    try:
+        dvsoup = bs4.BeautifulSoup(dvhtml, "html.parser")
+    except:
+        dvsoup = bs4.BeautifulSoup(dvhtml, "html5lib")
+
+    dvcnts = dvsoup.find_all("strong")
+    dvlut = ""
+    for dvcnt in dvcnts :
+    #    print(dvcnt )
+        if (dvcnt is not None):
+            dvlut = dvcnt.getText();
+   #         print("dtv"+dvlut)
+            if(dvtitle[0]== dvlut[0] and dvtitle[1] == dvlut[1] ) :
+      #          print(dvtitle + dvlut)
+                break
+            else:
+                dvlut = ""
+    dvmes = "dTVで"
+    if(dvlut == ""):
+        dvmes =  dvmes + "は見つけられなかったよ"
+    else:
+        dvmes = dvmes + dvlut +"が見つかったよ"
+    return dvmes
+
 
 def searchJW(jmes,jtitle):
     jprovn = jmes
@@ -201,7 +299,7 @@ def searchJW(jmes,jtitle):
        jcntn = jcnt.getText()
        jmes = jmes + jcntn + "をみることができるよ"
     else:
-       jmes = jmes + "見つけられなかったよ"
+       jmes = jmes +jtitle+"を"+"見つけられなかったよ"
     return jmes
 def main():
      return
@@ -234,18 +332,27 @@ def handle_message(event):
         title = getTitleinStr(title)
     #ラーメンで調べるとオックスフォード英和辞典になるので
 
-    if(title == "" or len(title) > 50 or title.find("オックスフォード英語辞典") != -1 or title.find("とは、") != -1 or title.find("リメイク作品：") != -1 or title.find("著者：") != -1 or title.find("出版社：") != -1 or title.find("スタジオ：") != -1):
+    if(title == "" or len(title) > 50 or title.find("オックスフォード英語辞典") != -1 or title.find("とは、") != -1 or title.find("リメイク作品：") != -1 or title.find("著者：") != -1 or title.find("出版社：") != -1 or title.find("スタジオ：") != - 1 or title.find("監督：") != -1 or title.find("挿入歌：") != -1  or title.find("挿入歌：") != -1  or title.find("原作：") != -1  or title.find("興行収入：") != -1 or title.find("番組：") != -1   ):
+        
         title = key
     mes = title + "について調べたよ\n\n"
     print(mes)
     mes = mes + searchAmazonP(key)+ "\n"
-    mes = mes + searchJW("Netfix",title)+ "\n"
-    mes = mes + searchJW("Hulu",title)+ "\n"
+
+    #searchJW("Netfix",title)+ "\n"
+   # mes = mes + searchJW("Netfix",title)+ "\n"
+    mes = mes + searchHulu(title)+ "\n"
    # mes = mes + searchJW("U-NEXT",title)+ "\n"
     #mes = mes + searchJW("GYAO",title)+ "\n"
-    mes = mes + searchDanime(title) +"\n"
-    mes = mes + searchJW("dTV",title)
-
+    dmes = ""
+    dmes = searchDanime(title)
+    if (dmes.find('見つけられなかった') != -1):
+        dmes = searchDanime(key)
+    mes = mes + dmes + "\n"
+    dmes = ""
+    dmes = searchdtv(key)
+    mes = mes + dmes 
+    #mes = mes + searchJW("dTV",title)
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text = mes)
